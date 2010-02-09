@@ -5,6 +5,16 @@ require 'soap/wsdlDriver'
 require 'optparse'
 require 'optparse/time'
 
+# Get rid of the SSL errors
+class Net::HTTP
+  alias_method :old_initialize, :initialize
+  def initialize(*args)
+    old_initialize(*args)
+    @ssl_context = OpenSSL::SSL::SSLContext.new
+    @ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  end
+end
+
 # Parse the options
 options = Hash.new
 options[:config] = nil
