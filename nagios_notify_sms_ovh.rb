@@ -54,7 +54,7 @@ opts = OptionParser.new do |opts|
     options[:details] = details
   end
 
-  opts.on('-n', '--phone', 'Phone number to send the message') do |phone|
+  opts.on('-n', '--phone=PHONE', 'Phone number to send the message') do |phone|
     options[:phone_number] = phone
   end
 
@@ -101,6 +101,7 @@ hostname = options[:hostname]
 service = options[:service]
 time = options[:time]
 details = options[:details]
+phone_number = options[:phone_number]
 
 # Strip  the hostname
 if config['strip']
@@ -116,12 +117,11 @@ message = "#{type} #{state} #{hostname}/#{service}@#{time.hour}:#{time.min} #{de
 
 # Send the SMS through the OVH API
 
-wsdl = 'https://www.ovh.com/soapi/soapi-re-1.8.wsdl'
+wsdl = 'https://www.ovh.com/soapi/soapi-re-1.9.wsdl'
 soapi = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
 
 session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
-
-
+result = soapi.telephonySmsSend(session, config['ovhManager']['smsAccount'], config['ovhManager']['fromNumber'], phone_number, message, nil, nil, nil, nil)
 
 # Logout
 soapi.logout(session)

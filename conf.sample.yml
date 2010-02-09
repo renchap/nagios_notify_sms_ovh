@@ -1,6 +1,8 @@
 ovhManager:
   nicHandle: EXAMPLE-OVH
   password: changeme
+  smsAccount: sms-example-1
+  fromNumber: "+339XXXXXX"
 strip:
   hostname:
     - .localdomain
