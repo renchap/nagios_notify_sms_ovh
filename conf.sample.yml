@@ -1,3 +1,14 @@
 ovhManager:
   nicHandle: EXAMPLE-OVH
   password: changeme
+strip:
+  hostname:
+    - .localdomain
+replace:
+  type:
+    PROBLEM: v
+    RECOVERY: ^
+  state:
+    WARNING: W
+    CRITICAL: C
+

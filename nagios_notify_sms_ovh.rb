@@ -15,6 +15,7 @@ options[:service] = nil
 options[:type] = nil
 options[:state] = nil
 options[:phone_number] = nil
+options[:details] = nil
 
 opts = OptionParser.new do |opts|
   opts.banner = 'Usage: nagios_notify_sms_ovh.rb [options]'
@@ -47,6 +48,10 @@ opts = OptionParser.new do |opts|
 
   opts.on('-a', '--state=STATE', 'State of the service/host') do |state|
     options[:state] = state
+  end
+
+  opts.on('-e', '--details=DETAILS', 'Details about the alert') do |details|
+    options[:details] = details
   end
 
   opts.on('-n', '--phone', 'Phone number to send the message') do |phone|
@@ -83,13 +88,39 @@ begin
 rescue MissingArg => e
   abort 'Error : '+e.message+"\nTry --help for a list of options"
 end
+
 # Load the config file
 config = YAML.load_file(options[:config])
+
+# Build the message
+# ^ C fo-web13/Load Average@12:07:27 Load : 10.42 10.71 10.65 : 10.71  10 : WARNING 10.65  10 : CRITICAL
+
+type = options[:type]
+state = options[:state]
+hostname = options[:hostname]
+service = options[:service]
+time = options[:time]
+details = options[:details]
+
+# Strip  the hostname
+if config['strip']
+  config['strip']['hostname'].each { |s| hostname.gsub!(s, '') } if config['strip']['hostname']
+end
+
+if config['replace']
+  type = config['replace']['type'][type] if config['replace']['type'] and config['replace']['type'][type]
+  state = config['replace']['state'][state] if config['replace']['state'] and config['replace']['state'][state]
+end
+
+message = "#{type} #{state} #{hostname}/#{service}@#{time.hour}:#{time.min} #{details}"
+
+# Send the SMS through the OVH API
 
 wsdl = 'https://www.ovh.com/soapi/soapi-re-1.8.wsdl'
 soapi = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
 
 session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
+
 
 
 # Logout
