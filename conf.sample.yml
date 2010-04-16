@@ -13,4 +13,7 @@ replace:
   state:
     WARNING: W
     CRITICAL: C
-
+errorMail:
+  server: localhost
+  to: errorMail@localhost
+  from: errorMail@localhost

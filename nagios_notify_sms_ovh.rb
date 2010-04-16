@@ -4,6 +4,7 @@ require 'yaml'
 require 'soap/wsdlDriver'
 require 'optparse'
 require 'optparse/time'
+require 'net/smtp'
 
 # Get rid of the SSL errors
 class Net::HTTP
@@ -26,6 +27,7 @@ options[:type] = nil
 options[:state] = nil
 options[:phone_number] = nil
 options[:details] = nil
+options[:dont_send_sms] = false
 
 opts = OptionParser.new do |opts|
   opts.banner = 'Usage: nagios_notify_sms_ovh.rb [options]'
@@ -66,6 +68,10 @@ opts = OptionParser.new do |opts|
 
   opts.on('-n', '--phone=PHONE', 'Phone number to send the message') do |phone|
     options[:phone_number] = phone
+  end
+
+  opts.on('--dont-send-sms', 'Dont send the SMS') do |send|
+    options[:dont_send_sms] = true
   end
 
   opts.on_tail('-h', '--help', 'Show this message') do
@@ -127,11 +133,27 @@ message = "#{type} #{state} #{hostname}/#{service}@#{time.hour}:#{time.min} #{de
 
 # Send the SMS through the OVH API
 
-wsdl = 'https://www.ovh.com/soapi/soapi-re-1.9.wsdl'
-soapi = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
+begin
+  wsdl = 'https://www.ovh.com/soapi/soapi-re-1.9.wsdl'
+  soapi = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
+  
+  session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
+  unless options[:dont_send_sms]
+    result = soapi.telephonySmsSend(session, config['ovhManager']['smsAccount'], config['ovhManager']['fromNumber'], phone_number, message, nil, nil, nil, nil)
+  end
+rescue Exception => e
+  puts "Error : #{e}"
+  msg = <<END_OF_MESSAGE
+Subject: nagios_notify_sms_ovh: Error
 
-session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
-result = soapi.telephonySmsSend(session, config['ovhManager']['smsAccount'], config['ovhManager']['fromNumber'], phone_number, message, nil, nil, nil, nil)
+An error occured in nagios_notify_sms_ovh.rb : #{e}.
+END_OF_MESSAGE
+
+  Net::SMTP.start(config['errorMail']['server']) do |smtp|
+    smtp.send_message(msg, config['errorMail']['from'], config['errorMail']['to'])
+  end
+  exit 1
+end
 
 # Logout
 soapi.logout(session)
