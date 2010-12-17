@@ -19,7 +19,6 @@ end
 # Parse the options
 options = Hash.new
 options[:config] = nil
-options[:dont_send_sms] = false
 
 opts = OptionParser.new do |opts|
   opts.banner = 'Usage: nagios_notify_sms_ovh.rb [options]'
@@ -28,10 +27,6 @@ opts = OptionParser.new do |opts|
 
   opts.on('-c', '--config=PATH', 'Path to the config file') do |config|
     options[:config] = config
-  end
-
-  opts.on('--dont-send-sms', 'Dont send the SMS') do |send|
-    options[:dont_send_sms] = true
   end
 
   opts.on_tail('-h', '--help', 'Show this message') do
@@ -51,7 +46,6 @@ class MissingArg < Exception
 end
 begin
   raise MissingArg, 'You must specify a config file' if options[:config] == nil
-
 rescue MissingArg => e
   abort 'Error : '+e.message+"\nTry --help for a list of options"
 end
