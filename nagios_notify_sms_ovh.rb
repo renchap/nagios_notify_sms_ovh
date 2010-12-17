@@ -38,7 +38,7 @@ opts = OptionParser.new do |opts|
     options[:config] = config
   end
 
-  opts.on('-m', '--mode=MODE', [:host, :service], 'Select alert object type (server, host, credit)') do |mode|
+  opts.on('-m', '--mode=MODE', [:host, :service], 'Select alert object type (server, host)') do |mode|
     options[:mode] = mode
   end
 
