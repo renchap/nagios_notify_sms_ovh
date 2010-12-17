@@ -17,3 +17,5 @@ errorMail:
   server: localhost
   to: errorMail@localhost
   from: errorMail@localhost
+credit:
+  threshold: 500

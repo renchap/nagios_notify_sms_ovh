@@ -38,7 +38,7 @@ opts = OptionParser.new do |opts|
     options[:config] = config
   end
 
-  opts.on('-m', '--mode=MODE', [:host, :service], 'Select alert object type (server, host)') do |mode|
+  opts.on('-m', '--mode=MODE', [:host, :service], 'Select alert object type (server, host, credit)') do |mode|
     options[:mode] = mode
   end
 
@@ -132,7 +132,6 @@ end
 message = "#{type} #{state} #{hostname}/#{service}@#{time.hour}:#{time.min} #{details}"
 
 # Send the SMS through the OVH API
-
 begin
   wsdl = 'https://www.ovh.com/soapi/soapi-re-1.9.wsdl'
   soapi = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
@@ -141,6 +140,7 @@ begin
   unless options[:dont_send_sms]
     result = soapi.telephonySmsSend(session, config['ovhManager']['smsAccount'], config['ovhManager']['fromNumber'], phone_number, message, nil, nil, nil, nil)
   end
+
 rescue Exception => e
   puts "Error : #{e}"
   msg = <<END_OF_MESSAGE
@@ -153,6 +153,15 @@ END_OF_MESSAGE
     smtp.send_message(msg, config['errorMail']['from'], config['errorMail']['to'])
   end
   exit 1
+end
+
+# then check the number of SMS left
+smsleft = soapi.telephonySmsCreditLeft(session, config['ovhManager']['smsAccount']).to_i
+if smsleft < config['credit']['threshold'] then
+  msg = "only #{smsleft} credits left for the nagios SMS alert !"
+  Net::SMTP.start(config['errorMail']['server']) do |smtp|
+    smtp.send_message(msg, config['errorMail']['from'], config['errorMail']['to'])
+  end
 end
 
 # Logout
