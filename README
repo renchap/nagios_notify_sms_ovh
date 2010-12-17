@@ -7,7 +7,7 @@ Small utility to send Nagios alerts on a mobile phone using OVH SMS API
 * single_checker.rb => only checks for remaining credit
 
 == Credits ==
-Original author : Renau
+Original author : Renaud Chaput
 
 == Sample nagios config ==
 
