@@ -5,6 +5,8 @@ require 'soap/wsdlDriver'
 require 'optparse'
 require 'optparse/time'
 require 'net/smtp'
+require 'rubygems'
+require 'uuid'
 
 # Get rid of the SSL errors
 class Net::HTTP
@@ -119,7 +121,7 @@ time = options[:time]
 details = options[:details]
 phone_number = options[:phone_number]
 
-# Strip  the hostname
+# Strip the hostname
 if config['strip']
   config['strip']['hostname'].each { |s| hostname.gsub!(s, '') } if config['strip']['hostname']
 end
@@ -131,28 +133,50 @@ end
 
 message = "#{type} #{state} #{hostname}/#{service}@#{time.hour}:#{time.min} #{details}"
 
-# Send the SMS through the OVH API
-begin
-  wsdl = 'https://www.ovh.com/soapi/soapi-re-1.9.wsdl'
-  soapi = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
-  
-  session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
-  unless options[:dont_send_sms]
-    result = soapi.telephonySmsSend(session, config['ovhManager']['smsAccount'], config['ovhManager']['fromNumber'], phone_number, message, nil, nil, nil, nil)
-  end
+# create spool dir if not existing
+unless File.exist?(config['throttling']['spooldir'])
+  Dir.mkdir(config['throttling']['spooldir'])
+end
 
-rescue Exception => e
-  puts "Error : #{e}"
-  msg = <<END_OF_MESSAGE
+filename=UUID.new.generate
+fp=File.open("#{config['throttling']['spooldir']}/#{filename}", "w")
+fp.write(message)
+fp.close
+
+nb_files = Dir.glob("#{config['throttling']['spooldir']}/*").count
+if (nb_files > config['throttling']['limit']) then
+  puts "Error : too many files in spool"
+else
+  # send the SMS through the OVH API
+  begin
+    wsdl = 'https://www.ovh.com/soapi/soapi-re-1.9.wsdl'
+    soapi = SOAP::WSDLDriverFactory.new(wsdl).create_rpc_driver
+
+    session = soapi.login(config['ovhManager']['nicHandle'], config['ovhManager']['password'], 'en', false)
+    unless options[:dont_send_sms]
+      result = soapi.telephonySmsSend(session, config['ovhManager']['smsAccount'], config['ovhManager']['fromNumber'], phone_number, message, nil, nil, nil, nil)
+    end
+
+  rescue Exception => e
+    puts "Error : #{e}"
+    msg = <<END_OF_MESSAGE
 Subject: nagios_notify_sms_ovh: Error
 
 An error occured in nagios_notify_sms_ovh.rb : #{e}.
 END_OF_MESSAGE
 
-  Net::SMTP.start(config['errorMail']['server']) do |smtp|
-    smtp.send_message(msg, config['errorMail']['from'], config['errorMail']['to'])
+    Net::SMTP.start(config['errorMail']['server']) do |smtp|
+      smtp.send_message(msg, config['errorMail']['from'], config['errorMail']['to'])
+    end
+    exit 1
   end
-  exit 1
+end
+
+# clean old spooled SMS
+Dir.glob("#{config['throttling']['spooldir']}/*").each do |lockfile|
+  if Time.now - File::ctime(lockfile) > config['throttling']['delay'] then
+    File.delete lockfile
+  end
 end
 
 # then check the number of SMS left
