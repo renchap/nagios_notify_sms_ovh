@@ -5,7 +5,7 @@ require 'soap/wsdlDriver'
 require 'optparse'
 require 'optparse/time'
 require 'net/smtp'
-require 'tempfile'
+require 'digest/sha1'
 
 # Get rid of the SSL errors
 class Net::HTTP
@@ -139,14 +139,14 @@ end
 
 # clean old spooled SMS
 Dir.glob("#{config['throttling']['spooldir']}/*").each do |lfile|
-  if Time.now - File::ctime(lfile) > config['throttling']['delay'] then
+  if (Time.now - File::ctime(lfile)).to_i > config['throttling']['delay'] then
     File.delete lfile
   end
 end
 
-fp=Tempfile.new("nagios_sms",config['throttling']['spooldir'])
+filename = Digest::SHA1::hexdigest(config['throttling']['spooldir']+Time.now.to_s)
+fp=File.open(config['throttling']['spooldir'] +"/"+filename, "w")
 fp.write(message)
-fp.close
 
 nb_files = Dir.glob("#{config['throttling']['spooldir']}/*").count
 if (nb_files > config['throttling']['limit']) then
@@ -188,3 +188,5 @@ end
 
 # Logout
 soapi.logout(session)
+# close lock file
+fp.close
