@@ -5,8 +5,7 @@ require 'soap/wsdlDriver'
 require 'optparse'
 require 'optparse/time'
 require 'net/smtp'
-require 'rubygems'
-require 'uuid'
+require 'digest/sha1'
 
 # Get rid of the SSL errors
 class Net::HTTP
@@ -138,7 +137,15 @@ unless File.exist?(config['throttling']['spooldir'])
   Dir.mkdir(config['throttling']['spooldir'])
 end
 
-filename=UUID.new.generate
+# clean old spooled SMS
+Dir.glob("#{config['throttling']['spooldir']}/*").each do |lfile|
+  if Time.now - File::ctime(lockfile) > config['throttling']['delay'] then
+    File.delete lockfile
+  end
+end
+
+
+filename=Digest::SHA1::hexdigest(message)
 fp=File.open("#{config['throttling']['spooldir']}/#{filename}", "w")
 fp.write(message)
 fp.close
@@ -169,13 +176,6 @@ END_OF_MESSAGE
       smtp.send_message(msg, config['errorMail']['from'], config['errorMail']['to'])
     end
     exit 1
-  end
-end
-
-# clean old spooled SMS
-Dir.glob("#{config['throttling']['spooldir']}/*").each do |lockfile|
-  if Time.now - File::ctime(lockfile) > config['throttling']['delay'] then
-    File.delete lockfile
   end
 end
 
