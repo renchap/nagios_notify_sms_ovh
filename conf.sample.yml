@@ -19,3 +19,7 @@ errorMail:
   from: errorMail@localhost
 credit:
   threshold: 500
+throttling:
+  delay: 300
+  limit: 5
+  spooldir: "/tmp/sms_spool/"
