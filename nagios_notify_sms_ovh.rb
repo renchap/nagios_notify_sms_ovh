@@ -119,6 +119,7 @@ service = options[:service]
 time = options[:time]
 details = options[:details]
 phone_number = options[:phone_number]
+cleaned_phone = phone_number.gsub("+","")
 
 # Strip the hostname
 if config['strip']
@@ -144,13 +145,14 @@ Dir.glob("#{config['throttling']['spooldir']}/*").each do |lfile|
   end
 end
 
-filename = Digest::SHA1::hexdigest(config['throttling']['spooldir']+Time.now.to_s)
+filename = cleaned_phone+"_"+Digest::SHA1::hexdigest(config['throttling']['spooldir']+Time.now.to_s)
 fp=File.open(config['throttling']['spooldir'] +"/"+filename, "w")
 fp.write(message)
 
-nb_files = Dir.glob("#{config['throttling']['spooldir']}/*").count
+nb_files = Dir.glob("#{config['throttling']['spooldir']}/#{cleaned_phone}_*").count
 if (nb_files > config['throttling']['limit']) then
   puts "Error : too many files in spool"
+  exit! 1
 else
   # send the SMS through the OVH API
   begin
