@@ -109,6 +109,14 @@ end
 # Load the config file
 config = YAML.load_file(options[:config])
 
+if File.exists?(config['kill']['file']) then
+  age = Time.now.to_i - File.mtime(config['kill']['file']).to_i
+  if age < config['kill']['file_age'] then
+    puts "Not sending SMS : killfile is here and only #{age}s old"
+    exit 0
+  end
+end
+
 # Build the message
 # ^ C fo-web13/Load Average@12:07:27 Load : 10.42 10.71 10.65 : 10.71  10 : WARNING 10.65  10 : CRITICAL
 
