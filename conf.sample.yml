@@ -23,3 +23,6 @@ throttling:
   delay: 300
   limit: 5
   spooldir: "/tmp/sms_spool/"
+kill:
+  file: "/tmp/sms.kill"
+  file_age: 3600
