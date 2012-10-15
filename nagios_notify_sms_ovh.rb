@@ -139,7 +139,7 @@ if config['replace']
   state = config['replace']['state'][state] if config['replace']['state'] and config['replace']['state'][state]
 end
 
-message = "#{type} #{state} #{hostname}/#{service}@#{time.hour}:#{time.min} #{details}"
+message = "#{type} #{state} #{hostname}/#{service}@#{time.strftime("%H:%M")} #{details}"
 
 # create spool dir if not existing
 unless File.exist?(config['throttling']['spooldir'])
