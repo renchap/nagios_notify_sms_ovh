@@ -96,7 +96,7 @@ begin
   raise MissingArg, 'You must specify a hostname' if options[:hostname] == nil
   raise MissingArg, 'You must specify a time' if options[:time] == nil
   raise MissingArg, 'You must specify an event type' if options[:type] == nil
-  raise MissingArg, 'You must specify a state' if options[:type] == nil
+  raise MissingArg, 'You must specify a state' if options[:state] == nil
   raise MissingArg, 'You must speficy a phone number' if options[:phone_number] == nil
 
   if options[:mode] == :service
